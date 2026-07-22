@@ -38,6 +38,14 @@ export default function AccountsPage() {
     },
   });
 
+  // Fetch Enrolled Students for Dropdown
+  const { data: students = [] } = useQuery({
+    queryKey: ['students-list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/students');
+      return res.data.data;
+    },
+  });
 
   // AI Reminder Mutation
   const reminderMutation = useMutation({
@@ -181,12 +189,30 @@ export default function AccountsPage() {
 
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="remStudentName">Student Name</Label>
-                <Input
-                  id="remStudentName"
-                  placeholder="e.g. Alice Wonderland"
+                <Label htmlFor="remStudentSelect">Select Enrolled Student</Label>
+                <select
+                  id="remStudentSelect"
                   value={remStudentName}
                   onChange={(e) => setRemStudentName(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="" className="bg-card text-muted-foreground">-- Select Student from Database --</option>
+                  {students.map((st: any) => {
+                    const fullName = `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.rollNumber;
+                    return (
+                      <option key={st.id} value={fullName} className="bg-card text-foreground">
+                        {fullName} ({st.rollNumber})
+                      </option>
+                    );
+                  })}
+                </select>
+
+                <Input
+                  id="remStudentName"
+                  placeholder="Or type student name manually..."
+                  value={remStudentName}
+                  onChange={(e) => setRemStudentName(e.target.value)}
+                  className="bg-white/[0.04] border-white/10 text-xs"
                 />
               </div>
 
