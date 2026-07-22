@@ -15,3 +15,7 @@ teacherRouter.get('/:id', (req, res) => teacherController.getTeacherById(req, re
 teacherRouter.post('/', requireRole(UserRole.SUPER_ADMIN, UserRole.PRINCIPAL, UserRole.MANAGEMENT), (req, res) =>
   teacherController.onboardTeacher(req, res),
 );
+
+teacherRouter.patch('/:id/transfer', requireRole(UserRole.SUPER_ADMIN, UserRole.PRINCIPAL, UserRole.MANAGEMENT), (req, res) =>
+  teacherController.transferTeacherBranch(req, res),
+);

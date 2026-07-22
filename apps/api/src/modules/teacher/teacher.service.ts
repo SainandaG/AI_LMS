@@ -10,12 +10,17 @@ import { logger } from '@/shared/utils/logger';
 
 export class TeacherService {
   async getTeachers(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ teachers: any[]; meta: PaginationMeta }> {
     const { teachers, total } = await teacherRepository.findTeachers(schoolId, params);
     const meta = buildPaginationMeta(total, params.page, params.limit);
     return { teachers, meta };
+  }
+
+  async transferTeacherBranch(teacherId: string, targetSchoolId: string): Promise<any> {
+    await this.getTeacherById(teacherId);
+    return teacherRepository.transferTeacherBranch(teacherId, targetSchoolId);
   }
 
   async getTeacherById(id: string): Promise<any> {

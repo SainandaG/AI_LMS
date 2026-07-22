@@ -3,14 +3,14 @@ import { PaginationInput } from '@ai-lms/shared';
 
 export class TeacherRepository {
   async findTeachers(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ teachers: any[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
 
     const where: any = {
       user: {
-        schoolId,
+        ...(schoolId ? { schoolId } : {}),
         deletedAt: null,
         ...(params.search
           ? {
@@ -41,6 +41,15 @@ export class TeacherRepository {
               gender: true,
               role: true,
               status: true,
+              schoolId: true,
+              school: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  address: true,
+                },
+              },
             },
           },
           department: true,
@@ -56,6 +65,16 @@ export class TeacherRepository {
     ]);
 
     return { teachers, total };
+  }
+
+  async transferTeacherBranch(teacherId: string, targetSchoolId: string): Promise<any> {
+    const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
+    if (!teacher) throw new Error('Teacher record not found');
+
+    return prisma.user.update({
+      where: { id: teacher.userId },
+      data: { schoolId: targetSchoolId },
+    });
   }
 
   async findTeacherById(id: string): Promise<any | null> {
