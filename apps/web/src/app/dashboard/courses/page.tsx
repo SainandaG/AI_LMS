@@ -55,7 +55,6 @@ export default function CoursesLmsPage() {
 
   // Add Lesson Form State
   const [isAddLessonOpen, setIsAddLessonOpen] = useState(false);
-  const [isAddAssignmentOpen, setIsAddAssignmentOpen] = useState(false);
 
   // AI Tutor Doubt State inside Course Viewer
   const [aiQuery, setAiQuery] = useState('');
@@ -91,7 +90,7 @@ export default function CoursesLmsPage() {
   });
 
   // Create Course Mutation
-  const { register: regCourse, handleSubmit: handleCourseSubmit, reset: resetCourse, setValue: setCourseValue } = useForm();
+  const { register: regCourse, handleSubmit: handleCourseSubmit, reset: resetCourse } = useForm();
   const createCourseMutation = useMutation({
     mutationFn: async (formData: any) => {
       const payload = {
