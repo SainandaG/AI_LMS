@@ -1,4 +1,4 @@
-import { prisma, User, UserRole } from '@ai-lms/database';
+import { prisma, User, UserRole, AccountStatus } from '@ai-lms/database';
 import { RegisterInput } from '@ai-lms/shared';
 
 export class AuthRepository {

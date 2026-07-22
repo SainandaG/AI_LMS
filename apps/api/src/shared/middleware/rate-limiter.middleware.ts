@@ -8,6 +8,7 @@ const createLimiter = (windowMs: number, max: number) =>
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.method === 'OPTIONS',
     handler: (_req, _res, next) => {
       next(new TooManyRequestsError());
     },
