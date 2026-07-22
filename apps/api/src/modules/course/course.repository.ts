@@ -53,6 +53,7 @@ export class CourseRepository {
     schoolId: string;
     title: string;
     description?: string;
+    thumbnail?: string;
     subjectId?: string;
     createdBy: string;
   }): Promise<Course> {
@@ -63,6 +64,7 @@ export class CourseRepository {
         createdBy: data.createdBy,
         isPublished: true,
         ...(data.description ? { description: data.description } : {}),
+        ...(data.thumbnail ? { thumbnail: data.thumbnail } : {}),
         ...(data.subjectId ? { subjectId: data.subjectId } : {}),
       },
     });

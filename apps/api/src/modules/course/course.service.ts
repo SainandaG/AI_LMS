@@ -26,6 +26,7 @@ export class CourseService {
     schoolId: string;
     title: string;
     description?: string;
+    thumbnail?: string;
     subjectId?: string;
     createdBy: string;
   }): Promise<Course> {

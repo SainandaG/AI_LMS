@@ -25,6 +25,7 @@ export class CourseController {
     const schema = z.object({
       title: z.string().min(2),
       description: z.string().optional(),
+      thumbnail: z.string().optional(),
       subjectId: z.string().uuid().optional(),
     });
 
@@ -37,6 +38,7 @@ export class CourseController {
       schoolId,
       createdBy,
       ...(body.description ? { description: body.description } : {}),
+      ...(body.thumbnail ? { thumbnail: body.thumbnail } : {}),
       ...(body.subjectId ? { subjectId: body.subjectId } : {}),
     });
 
