@@ -12,6 +12,7 @@ import {
   X,
   PlusCircle,
   Calendar,
+  CheckCircle2,
   Lock,
   Upload,
   FileText,
@@ -46,6 +47,21 @@ export default function ExamResultsPage() {
   const [isAiExplainOpen, setIsAiExplainOpen] = useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [selectedExamForView, setSelectedExamForView] = useState<any | null>(null);
+  const [selectedExamForMarks, setSelectedExamForMarks] = useState<any | null>(null);
+
+  // Form state for Marks Entry
+  const [marksStudentId, setMarksStudentId] = useState('');
+  const [marksObtained, setMarksObtained] = useState('85');
+  const [marksRemarks, setMarksRemarks] = useState('');
+
+  // Fetch Students list for Marks Entry
+  const { data: studentsList = [] } = useQuery({
+    queryKey: ['students-list-exams'],
+    queryFn: async () => {
+      const res = await apiClient.get('/students');
+      return res.data.data;
+    },
+  });
 
   // Form state for AI Explanation
   const [question, setQuestion] = useState('');
@@ -229,6 +245,33 @@ export default function ExamResultsPage() {
     },
   });
 
+  // Record / Update Student Marks Mutation
+  const recordResultMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedExamForMarks || !marksStudentId) {
+        throw new Error('Please select a student');
+      }
+      const res = await apiClient.post('/exams/results', {
+        examId: selectedExamForMarks.id,
+        studentId: marksStudentId,
+        marksObtained: Number(marksObtained),
+        remarks: marksRemarks || 'Manually evaluated paper',
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      toast.success('Student examination marks recorded in database!');
+      setSelectedExamForMarks(null);
+      setMarksStudentId('');
+      setMarksObtained('85');
+      setMarksRemarks('');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to update student marks');
+    },
+  });
+
   const handleScheduleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) {
@@ -365,12 +408,21 @@ export default function ExamResultsPage() {
                   </span>
                 </div>
 
-                <button
-                  onClick={() => setSelectedExamForView(exam)}
-                  className="w-full mt-2 text-xs font-bold py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-brand-500/15 hover:border-brand-500/30 text-brand-300 transition-all flex items-center justify-center gap-2"
-                >
-                  <Eye className="w-4 h-4" /> View Question Paper
-                </button>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <button
+                    onClick={() => setSelectedExamForView(exam)}
+                    className="text-xs font-bold py-2 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-brand-500/15 hover:border-brand-500/30 text-brand-300 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Paper
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedExamForMarks(exam)}
+                    className="text-xs font-bold py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5 text-emerald-400" /> Enter Marks
+                  </button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -476,6 +528,120 @@ export default function ExamResultsPage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* UPDATE / RECORD MANUAL EXAM MARKS MODAL */}
+      {/* ========================================================================= */}
+      {selectedExamForMarks && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-lg glass-strong border border-emerald-500/30 relative animate-fade-in-up my-8 shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 border border-emerald-500/40">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-black">Record Student Exam Marks</CardTitle>
+                  <CardDescription className="text-xs">
+                    {selectedExamForMarks.title} • Max Marks: {selectedExamForMarks.totalMarks}
+                  </CardDescription>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedExamForMarks(null)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+
+            <CardContent className="pt-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  recordResultMutation.mutate();
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="marksStudent" className="text-xs font-semibold">Select Enrolled Student</Label>
+                  <select
+                    id="marksStudent"
+                    value={marksStudentId}
+                    onChange={(e) => setMarksStudentId(e.target.value)}
+                    required
+                    className="w-full h-10 px-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="" className="bg-card text-muted-foreground">-- Select Student --</option>
+                    {studentsList.map((st: any) => {
+                      const name = `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.rollNumber;
+                      return (
+                        <option key={st.id} value={st.id} className="bg-card text-foreground">
+                          {name} ({st.rollNumber})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="marksObtained" className="text-xs font-semibold">
+                      Marks Obtained (Out of {selectedExamForMarks.totalMarks})
+                    </Label>
+                    <Input
+                      id="marksObtained"
+                      type="number"
+                      max={selectedExamForMarks.totalMarks}
+                      min={0}
+                      value={marksObtained}
+                      onChange={(e) => setMarksObtained(e.target.value)}
+                      required
+                      className="bg-white/[0.04] border-white/10 text-xs font-bold text-emerald-300"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Status & Calculated Grade</Label>
+                    <div className="h-10 px-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold flex items-center justify-between">
+                      <span className={Number(marksObtained) >= selectedExamForMarks.passingMarks ? 'text-emerald-400' : 'text-rose-400'}>
+                        {Number(marksObtained) >= selectedExamForMarks.passingMarks ? '✓ PASSED' : '✕ FAILED'}
+                      </span>
+                      <span className="text-amber-300 font-mono">
+                        Grade: {Number(marksObtained) >= 90 ? 'A+' : Number(marksObtained) >= 75 ? 'A' : Number(marksObtained) >= 60 ? 'B' : 'C'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="marksRemarks" className="text-xs font-semibold">Faculty / Evaluator Remarks</Label>
+                  <Input
+                    id="marksRemarks"
+                    placeholder="e.g. Excellent solution in section B. Needs minor revision in Q4."
+                    value={marksRemarks}
+                    onChange={(e) => setMarksRemarks(e.target.value)}
+                    className="bg-white/[0.04] border-white/10 text-xs"
+                  />
+                </div>
+
+                <div className="pt-3 flex justify-end gap-3 border-t border-white/10">
+                  <Button type="button" variant="outline" onClick={() => setSelectedExamForMarks(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={recordResultMutation.isPending || !marksStudentId}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold gap-2"
+                  >
+                    {recordResultMutation.isPending ? 'Saving...' : 'Save & Publish Marks'}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </div>
