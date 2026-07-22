@@ -12,14 +12,12 @@ import {
   X,
   PlusCircle,
   Calendar,
-  CheckCircle2,
   Lock,
   Upload,
   FileText,
   HelpCircle,
   Eye,
   Trash2,
-  BookOpen,
 } from 'lucide-react';
 
 import { apiClient } from '@/lib/api-client';
