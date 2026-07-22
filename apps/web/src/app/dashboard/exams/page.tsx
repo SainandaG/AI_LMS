@@ -179,12 +179,15 @@ export default function ExamResultsPage() {
       D: optD,
     };
 
+    const selectedAns = correctMap[curCorrect];
+    const finalAns: string = selectedAns ?? optA;
+
     setQuestionsList((prev) => [
       ...prev,
       {
         question: curQuestionText,
         options,
-        correctAnswer: correctMap[curCorrect] || options[0],
+        correctAnswer: finalAns,
         marks: 20,
       },
     ]);
