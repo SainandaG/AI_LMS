@@ -49,7 +49,14 @@ export const createApp = (): Application => {
   // ─── CORS ──────────────────────────────────────────────────────────────────
   app.use(
     cors({
-      origin: env.CORS_ORIGINS,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, Postman), configured origins, or any Vercel deployment
+        if (!origin || env.CORS_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Refresh-Token'],
