@@ -22,7 +22,6 @@ import {
   Clock,
   ChevronRight,
   ArrowRight,
-  Upload,
   User,
   GraduationCap,
 } from 'lucide-react';
