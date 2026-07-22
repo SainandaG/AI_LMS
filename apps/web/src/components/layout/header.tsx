@@ -7,7 +7,8 @@ import { clearCredentials } from '@/store/slices/auth.slice';
 import { setAccessToken, apiClient } from '@/lib/api-client';
 import { getInitials, ROLE_LABELS, ROLE_COLORS, cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Sun, Moon, LogOut, Search, Bell, Sparkles } from 'lucide-react';
+import { Sun, Moon, LogOut, Search, Bell, Sparkles, Menu } from 'lucide-react';
+import { toggleSidebar } from '@/store/slices/ui.slice';
 import Link from 'next/link';
 
 export function Header() {
@@ -33,10 +34,19 @@ export function Header() {
   return (
     <header
       className={cn(
-        'h-16 fixed top-0 right-0 z-30 border-b border-white/10 bg-card/60 backdrop-blur-2xl transition-all duration-300 flex items-center justify-between px-6 shadow-sm',
-        sidebarOpen ? 'left-72' : 'left-20',
+        'h-16 fixed top-0 right-0 z-30 border-b border-white/10 bg-card/60 backdrop-blur-2xl transition-all duration-300 flex items-center justify-between px-4 sm:px-6 shadow-sm left-0',
+        sidebarOpen ? 'lg:left-72' : 'lg:left-20',
       )}
     >
+      {/* Mobile Menu Toggle Button */}
+      <button
+        onClick={() => dispatch(toggleSidebar())}
+        className="p-2 rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors mr-3 lg:hidden"
+        title="Open Navigation Menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
       {/* Search Input */}
       <div className="relative w-72 hidden sm:block">
         <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-muted-foreground" />
