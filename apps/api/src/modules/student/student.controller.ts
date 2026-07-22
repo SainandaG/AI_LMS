@@ -9,7 +9,7 @@ import { sendSuccess, sendCreated } from '@/shared/utils/response.util';
 export class StudentController {
   async getStudents(req: Request, res: Response): Promise<void> {
     const params = PaginationSchema.parse(req.query);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const { students, meta } = await studentService.getStudents(schoolId, params);
     sendSuccess(res, students, 'Students directory retrieved', 200, meta);
@@ -39,7 +39,7 @@ export class StudentController {
     });
 
     const body = schema.parse(req.body);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const student = await studentService.admitStudent({
       email: body.email,
@@ -47,7 +47,7 @@ export class StudentController {
       lastName: body.lastName,
       rollNumber: body.rollNumber,
       admissionDate: body.admissionDate,
-      schoolId,
+      ...(schoolId ? { schoolId } : {}),
       ...(body.password ? { password: body.password } : {}),
       ...(body.gender ? { gender: body.gender } : {}),
       ...(body.phone ? { phone: body.phone } : {}),

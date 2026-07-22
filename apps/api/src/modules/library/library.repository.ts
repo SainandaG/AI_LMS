@@ -2,11 +2,11 @@ import { prisma, Book, Borrow, BookStatus } from '@ai-lms/database';
 import { PaginationInput } from '@ai-lms/shared';
 
 export class LibraryRepository {
-  async findBooks(schoolId: string, params: PaginationInput): Promise<{ books: any[]; total: number }> {
+  async findBooks(schoolId: string | undefined, params: PaginationInput): Promise<{ books: any[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
 
     const where: any = {
-      schoolId,
+      ...(schoolId ? { schoolId } : {}),
       ...(params.search
         ? {
             OR: [
@@ -55,7 +55,7 @@ export class LibraryRepository {
   }
 
   async createBook(data: {
-    schoolId: string;
+    schoolId?: string;
     title: string;
     author: string;
     category: string;
@@ -64,9 +64,15 @@ export class LibraryRepository {
     description?: string;
     totalCopies?: number;
   }): Promise<Book> {
+    let targetSchoolId = data.schoolId;
+    if (!targetSchoolId) {
+      const defaultSchool = await prisma.school.findFirst();
+      if (defaultSchool) targetSchoolId = defaultSchool.id;
+    }
+
     return prisma.book.create({
       data: {
-        schoolId: data.schoolId,
+        schoolId: targetSchoolId!,
         title: data.title,
         author: data.author,
         category: data.category,

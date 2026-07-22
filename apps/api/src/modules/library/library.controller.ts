@@ -8,7 +8,7 @@ import { sendSuccess, sendCreated } from '@/shared/utils/response.util';
 export class LibraryController {
   async getBooks(req: Request, res: Response): Promise<void> {
     const params = PaginationSchema.parse(req.query);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const { books, meta } = await libraryService.getBooks(schoolId, params);
     sendSuccess(res, books, 'Library books retrieved', 200, meta);
@@ -32,13 +32,13 @@ export class LibraryController {
     });
 
     const body = schema.parse(req.body);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const book = await libraryService.createBook({
       title: body.title,
       author: body.author,
       category: body.category,
-      schoolId,
+      ...(schoolId ? { schoolId } : {}),
       ...(body.isbn ? { isbn: body.isbn } : {}),
       ...(body.publisher ? { publisher: body.publisher } : {}),
       ...(body.description ? { description: body.description } : {}),

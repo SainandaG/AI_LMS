@@ -7,7 +7,7 @@ import { buildPaginationMeta } from '@/shared/utils/response.util';
 
 export class LibraryService {
   async getBooks(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ books: any[]; meta: PaginationMeta }> {
     const { books, total } = await libraryRepository.findBooks(schoolId, params);
@@ -22,7 +22,7 @@ export class LibraryService {
   }
 
   async createBook(data: {
-    schoolId: string;
+    schoolId?: string;
     title: string;
     author: string;
     category: string;

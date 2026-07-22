@@ -3,14 +3,14 @@ import { PaginationInput } from '@ai-lms/shared';
 
 export class StudentRepository {
   async findStudents(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ students: any[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
 
     const where: any = {
       user: {
-        schoolId,
+        ...(schoolId ? { schoolId } : {}),
         deletedAt: null,
         ...(params.search
           ? {
@@ -113,13 +113,19 @@ export class StudentRepository {
     phone?: string;
     rollNumber: string;
     admissionDate: Date;
-    schoolId: string;
+    schoolId?: string;
     classId?: string;
     academicYearId?: string;
     bloodGroup?: string;
     address?: string;
     emergencyPhone?: string;
   }): Promise<Student> {
+    let targetSchoolId = data.schoolId;
+    if (!targetSchoolId) {
+      const defaultSchool = await prisma.school.findFirst();
+      if (defaultSchool) targetSchoolId = defaultSchool.id;
+    }
+
     return prisma.$transaction(async (tx) => {
       // 1. Create User
       const user = await tx.user.create({
@@ -131,7 +137,7 @@ export class StudentRepository {
           role: UserRole.STUDENT,
           status: AccountStatus.ACTIVE,
           isEmailVerified: true,
-          schoolId: data.schoolId,
+          schoolId: targetSchoolId!,
           ...(data.gender ? { gender: data.gender } : {}),
           ...(data.phone ? { phone: data.phone } : {}),
         },

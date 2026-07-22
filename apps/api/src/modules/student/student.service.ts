@@ -10,7 +10,7 @@ import { logger } from '@/shared/utils/logger';
 
 export class StudentService {
   async getStudents(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ students: any[]; meta: PaginationMeta }> {
     const { students, total } = await studentRepository.findStudents(schoolId, params);
@@ -33,7 +33,7 @@ export class StudentService {
     phone?: string;
     rollNumber: string;
     admissionDate: string;
-    schoolId: string;
+    schoolId?: string;
     classId?: string;
     academicYearId?: string;
     bloodGroup?: string;
