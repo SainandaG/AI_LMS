@@ -115,12 +115,11 @@ export default function ExamResultsPage() {
 
     setIsAiGeneratingQuestions(true);
     try {
-      const res = await apiClient.post('/courses/ai/questions', {
+      await apiClient.post('/courses/ai/questions', {
         topic: newTitle,
         numQuestions: 5,
       });
 
-      const aiQuestionsText = res.data.data.questions;
       // Pre-fill generated questions
       setQuestionsList([
         {
