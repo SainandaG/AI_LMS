@@ -31,27 +31,11 @@ import { notificationRouter } from '@/modules/notification/notification.routes';
 export const createApp = (): Application => {
   const app = express();
 
-  // ─── Security ──────────────────────────────────────────────────────────────
-  app.use(
-    helmet({
-      crossOriginEmbedderPolicy: false,
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-        },
-      },
-    }),
-  );
-
-  // ─── CORS ──────────────────────────────────────────────────────────────────
+  // ─── CORS (Must be mounted FIRST before Helmet or rate limiters) ────────────
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, Postman), configured origins, or any Vercel deployment
-        if (!origin || env.CORS_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
+        if (!origin || env.CORS_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
           callback(null, true);
         } else {
           callback(null, true);
@@ -60,6 +44,16 @@ export const createApp = (): Application => {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Refresh-Token'],
+      optionsSuccessStatus: 200,
+    }),
+  );
+
+  // ─── Security ──────────────────────────────────────────────────────────────
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: false,
     }),
   );
 
