@@ -1,0 +1,11 @@
+{
+  "extends": "@ai-lms/config/typescript/node",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["node"],
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

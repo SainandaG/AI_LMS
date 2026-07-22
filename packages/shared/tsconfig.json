@@ -1,0 +1,5 @@
+{
+  "extends": "@ai-lms/config/typescript/base",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
