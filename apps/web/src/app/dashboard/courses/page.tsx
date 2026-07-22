@@ -137,9 +137,12 @@ export default function CoursesLmsPage() {
   });
 
   // AI Planner Mutation
+  const [lastAiTopic, setLastAiTopic] = useState('');
   const { register: regAi, handleSubmit: handleAiSubmit } = useForm();
+
   const aiPlannerMutation = useMutation({
     mutationFn: async (formData: any) => {
+      setLastAiTopic(formData.topic || 'AI Generated Course');
       const res = await apiClient.post('/courses/ai/lesson-plan', formData);
       return res.data.data;
     },
@@ -149,6 +152,26 @@ export default function CoursesLmsPage() {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Failed to generate AI plan');
+    },
+  });
+
+  const saveAiPlanAsCourseMutation = useMutation({
+    mutationFn: async ({ title, description }: { title: string; description: string }) => {
+      const res = await apiClient.post('/courses', {
+        title,
+        description: description.slice(0, 500) + '...',
+        thumbnail: PRESET_THUMBNAILS[0]?.url,
+      });
+      return res.data.data;
+    },
+    onSuccess: (newCourse) => {
+      toast.success(`Saved '${newCourse.title}' into Database!`);
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      setIsAiPlannerOpen(false);
+      setAiResult(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to save course');
     },
   });
 
@@ -807,13 +830,42 @@ export default function CoursesLmsPage() {
               </form>
 
               {aiResult && (
-                <div className="p-4 rounded-xl border border-ai/30 bg-ai/5 space-y-2 text-xs">
-                  <div className="font-bold text-ai flex items-center gap-1.5 text-sm">
-                    <Sparkles className="w-4 h-4" /> Generated Plan Output:
+                <div className="p-4 rounded-xl border border-ai/30 bg-ai/5 space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-ai flex items-center gap-1.5 text-sm">
+                      <Sparkles className="w-4 h-4" /> Generated Plan Output:
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(aiResult);
+                        toast.success('Plan copied to clipboard!');
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-white underline"
+                    >
+                      Copy Plan Text
+                    </button>
                   </div>
+
                   <pre className="whitespace-pre-wrap font-sans text-foreground/90 bg-background/50 p-4 rounded-lg border border-border/60 text-xs leading-relaxed max-h-80 overflow-y-auto">
                     {aiResult}
                   </pre>
+
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      onClick={() =>
+                        saveAiPlanAsCourseMutation.mutate({
+                          title: `${lastAiTopic || 'AI Course Module'}`,
+                          description: aiResult,
+                        })
+                      }
+                      disabled={saveAiPlanAsCourseMutation.isPending}
+                      variant="glow"
+                      className="w-full sm:w-auto gap-2 text-xs"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      {saveAiPlanAsCourseMutation.isPending ? 'Saving to Database...' : 'Save as New LMS Course'}
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
