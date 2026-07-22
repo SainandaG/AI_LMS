@@ -167,12 +167,16 @@ export default function ExamResultsPage() {
       toast.error('Question text is required');
       return;
     }
-    const options = [curOptA || 'Option A', curOptB || 'Option B', curOptC || 'Option C', curOptD || 'Option D'];
+    const optA = curOptA || 'Option A';
+    const optB = curOptB || 'Option B';
+    const optC = curOptC || 'Option C';
+    const optD = curOptD || 'Option D';
+    const options: string[] = [optA, optB, optC, optD];
     const correctMap: Record<string, string> = {
-      A: options[0],
-      B: options[1],
-      C: options[2],
-      D: options[3],
+      A: optA,
+      B: optB,
+      C: optC,
+      D: optD,
     };
 
     setQuestionsList((prev) => [
