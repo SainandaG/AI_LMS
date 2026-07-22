@@ -80,6 +80,15 @@ export const createApp = (): Application => {
   app.use('/api', rateLimiter.global);
 
   // ─── Routes ────────────────────────────────────────────────────────────────
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'online',
+      name: 'AI-LMS Backend API',
+      version: '1.0.0',
+      health: '/health',
+      docs: '/api/v1',
+    });
+  });
   app.use('/health', healthRouter);
   app.use('/api/v1/auth', rateLimiter.auth, authRouter);
   app.use('/api/v1/schools', schoolRouter);
