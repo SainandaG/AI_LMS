@@ -114,6 +114,12 @@ export class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    if (user.status === AccountStatus.PENDING_VERIFICATION) {
+      throw new ForbiddenError(
+        'Your student registration is pending approval by school administration. Please contact your administrator to activate your account.',
+      );
+    }
+
     if (user.status === AccountStatus.SUSPENDED) {
       throw new ForbiddenError('Your account has been suspended. Please contact support.');
     }

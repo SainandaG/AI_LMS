@@ -60,6 +60,12 @@ export class StudentController {
 
     sendCreated(res, student, 'Student admitted successfully');
   }
+
+  async approveStudent(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const student = await studentService.approveStudent(id!);
+    sendSuccess(res, student, 'Student account approved and activated successfully');
+  }
 }
 
 export const studentController = new StudentController();

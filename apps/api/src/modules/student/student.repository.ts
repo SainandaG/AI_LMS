@@ -164,6 +164,27 @@ export class StudentRepository {
       return student;
     });
   }
+
+  async approveStudentUser(studentId: string): Promise<any> {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: { user: true },
+    });
+    if (!student) return null;
+
+    await prisma.user.update({
+      where: { id: student.userId },
+      data: {
+        status: AccountStatus.ACTIVE,
+        isEmailVerified: true,
+      },
+    });
+
+    return prisma.student.findUnique({
+      where: { id: studentId },
+      include: { user: true },
+    });
+  }
 }
 
 export const studentRepository = new StudentRepository();

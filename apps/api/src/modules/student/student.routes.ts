@@ -18,3 +18,9 @@ studentRouter.get('/:id', (req, res) => studentController.getStudentById(req, re
 studentRouter.post('/', requireRole(UserRole.SUPER_ADMIN, UserRole.PRINCIPAL, UserRole.MANAGEMENT), (req, res) =>
   studentController.admitStudent(req, res),
 );
+
+studentRouter.patch(
+  '/:id/approve',
+  requireRole(UserRole.SUPER_ADMIN, UserRole.PRINCIPAL, UserRole.MANAGEMENT, UserRole.CLASS_TEACHER),
+  (req, res) => studentController.approveStudent(req, res),
+);

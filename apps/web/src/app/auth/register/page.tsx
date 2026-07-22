@@ -38,17 +38,14 @@ export default function RegisterPage() {
     },
   });
 
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
   const onSubmit = async (data: RegisterInput) => {
     setLoading(true);
     try {
-      const response = await apiClient.post('/auth/register', data);
-      const { user, tokens } = response.data.data;
-
-      setAccessToken(tokens.accessToken);
-      dispatch(setCredentials({ user, accessToken: tokens.accessToken }));
-
-      toast.success('Account created! Please check your email for the verification code.');
-      router.push('/dashboard');
+      await apiClient.post('/auth/register', data);
+      setIsSuccessModalOpen(true);
+      toast.success('Registration submitted for administrative approval!');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Registration failed. Please try again.';
       toast.error(msg);
@@ -180,6 +177,39 @@ export default function RegisterPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pending Approval Modal */}
+      {isSuccessModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <Card className="w-full max-w-md glass-strong border border-amber-DEFAULT/40 relative animate-fade-in-up text-center p-6 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-DEFAULT/15 border border-amber-DEFAULT/30 flex items-center justify-center mx-auto text-amber-light glow-amber">
+              <Sparkles className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-foreground">Registration Submitted!</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your student account has been created successfully. For security reasons, self-registered accounts require administrative approval before you can sign in.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-brand-300">
+              ⏳ <span className="font-semibold text-foreground">Status: Pending Verification</span>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Your institution principal or class teacher can activate your account from the Student Directory.
+              </p>
+            </div>
+
+            <Button
+              variant="glow"
+              onClick={() => router.push('/auth/login')}
+              className="w-full font-bold gap-2 mt-2"
+            >
+              Proceed to Sign In
+            </Button>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

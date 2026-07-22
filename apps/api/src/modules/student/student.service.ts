@@ -64,6 +64,15 @@ export class StudentService {
     logger.info({ studentId: student.id, rollNumber: student.rollNumber }, 'Student admitted successfully');
     return student;
   }
+
+  async approveStudent(id: string): Promise<any> {
+    const student = await studentRepository.findStudentById(id);
+    if (!student) throw new NotFoundError('Student profile not found');
+
+    const updated = await studentRepository.approveStudentUser(id);
+    logger.info({ studentId: id }, 'Student account approved and activated');
+    return updated;
+  }
 }
 
 export const studentService = new StudentService();

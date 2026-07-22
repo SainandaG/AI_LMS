@@ -23,16 +23,36 @@ export class AuthRepository {
   async createUser(
     data: RegisterInput & { passwordHash: string; role?: UserRole; schoolId?: string },
   ): Promise<User> {
-    return prisma.user.create({
-      data: {
-        email: data.email,
-        passwordHash: data.passwordHash,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        ...(data.phone ? { phone: data.phone } : {}),
-        role: data.role ?? UserRole.STUDENT,
-        ...(data.schoolId ? { schoolId: data.schoolId } : {}),
-      },
+    const isSelfRegistration = !data.role || data.role === UserRole.STUDENT;
+    const initialStatus = isSelfRegistration ? AccountStatus.PENDING_VERIFICATION : AccountStatus.ACTIVE;
+
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: data.email,
+          passwordHash: data.passwordHash,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          ...(data.phone ? { phone: data.phone } : {}),
+          role: data.role ?? UserRole.STUDENT,
+          status: initialStatus,
+          ...(data.schoolId ? { schoolId: data.schoolId } : {}),
+        },
+      });
+
+      // Automatically create Student record for student registrations
+      if (isSelfRegistration) {
+        const rollNumber = `REG-${Date.now().toString().slice(-6)}`;
+        await tx.student.create({
+          data: {
+            userId: user.id,
+            rollNumber,
+            admissionDate: new Date(),
+          },
+        });
+      }
+
+      return user;
     });
   }
 

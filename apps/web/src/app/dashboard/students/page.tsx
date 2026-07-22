@@ -64,6 +64,21 @@ export default function StudentDirectoryPage() {
     },
   });
 
+  // Approve Student Mutation
+  const approveStudentMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const res = await apiClient.patch(`/students/${studentId}/approve`);
+      return res.data.data;
+    },
+    onSuccess: (student) => {
+      toast.success(`Student ${student.user?.firstName || ''} approved and activated!`);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to approve student');
+    },
+  });
+
   const onAdmitSubmit = (data: any) => {
     admitStudentMutation.mutate(data);
   };
@@ -154,10 +169,19 @@ export default function StudentDirectoryPage() {
                       <CardTitle className="text-base font-bold truncate group-hover:text-emerald-light transition-colors">
                         {user.firstName} {user.lastName}
                       </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-lg bg-brand-500/15 text-brand-300 border border-brand-500/25">
                           {student.rollNumber}
                         </span>
+                        {user.status === 'PENDING_VERIFICATION' ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-DEFAULT/15 text-amber-light border border-amber-DEFAULT/30 animate-pulse">
+                            PENDING APPROVAL
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-DEFAULT/15 text-emerald-light border border-emerald-DEFAULT/30">
+                            ACTIVE
+                          </span>
+                        )}
                         {enrollment?.class && (
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-white/[0.05] text-muted-foreground border border-white/10">
                             {enrollment.class.name}
@@ -168,7 +192,7 @@ export default function StudentDirectoryPage() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-2 text-xs text-muted-foreground pt-0 border-t border-white/10 mt-1 pt-3">
+                <CardContent className="space-y-2.5 text-xs text-muted-foreground pt-0 border-t border-white/10 mt-1 pt-3">
                   <div className="flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5 text-brand-400 shrink-0" />
                     <span className="truncate">{user.email}</span>
@@ -183,6 +207,18 @@ export default function StudentDirectoryPage() {
                     <Calendar className="w-3.5 h-3.5 text-cyan-DEFAULT shrink-0" />
                     <span>Admitted: {new Date(student.admissionDate).toLocaleDateString()}</span>
                   </div>
+
+                  {user.status === 'PENDING_VERIFICATION' && (
+                    <Button
+                      size="sm"
+                      variant="glow"
+                      onClick={() => approveStudentMutation.mutate(student.id)}
+                      disabled={approveStudentMutation.isPending}
+                      className="w-full mt-2 text-xs font-bold gap-1.5"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" /> Approve & Activate Account
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
