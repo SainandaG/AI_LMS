@@ -8,7 +8,7 @@ import { logger } from '@/shared/utils/logger';
 
 export class CourseService {
   async getCourses(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ courses: any[]; meta: PaginationMeta }> {
     const { courses, total } = await courseRepository.findCourses(schoolId, params);
@@ -23,7 +23,7 @@ export class CourseService {
   }
 
   async createCourse(data: {
-    schoolId: string;
+    schoolId?: string;
     title: string;
     description?: string;
     thumbnail?: string;

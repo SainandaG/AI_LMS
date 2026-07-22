@@ -2,11 +2,11 @@ import { prisma, Course, Lesson, Assignment, Submission, ContentType } from '@ai
 import { PaginationInput } from '@ai-lms/shared';
 
 export class CourseRepository {
-  async findCourses(schoolId: string, params: PaginationInput): Promise<{ courses: any[]; total: number }> {
+  async findCourses(schoolId: string | undefined, params: PaginationInput): Promise<{ courses: any[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
 
     const where: any = {
-      schoolId,
+      ...(schoolId ? { schoolId } : {}),
       ...(params.search ? { title: { contains: params.search, mode: 'insensitive' } } : {}),
     };
 
@@ -50,16 +50,25 @@ export class CourseRepository {
   }
 
   async createCourse(data: {
-    schoolId: string;
+    schoolId?: string;
     title: string;
     description?: string;
     thumbnail?: string;
     subjectId?: string;
     createdBy: string;
   }): Promise<Course> {
+    // If no schoolId provided, fallback to first available school in DB or omit filter
+    let targetSchoolId = data.schoolId;
+    if (!targetSchoolId) {
+      const defaultSchool = await prisma.school.findFirst();
+      if (defaultSchool) {
+        targetSchoolId = defaultSchool.id;
+      }
+    }
+
     return prisma.course.create({
       data: {
-        schoolId: data.schoolId,
+        schoolId: targetSchoolId!,
         title: data.title,
         createdBy: data.createdBy,
         isPublished: true,

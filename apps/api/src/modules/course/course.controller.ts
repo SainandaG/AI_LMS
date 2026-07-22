@@ -9,7 +9,7 @@ import { sendSuccess, sendCreated } from '@/shared/utils/response.util';
 export class CourseController {
   async getCourses(req: Request, res: Response): Promise<void> {
     const params = PaginationSchema.parse(req.query);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const { courses, meta } = await courseService.getCourses(schoolId, params);
     sendSuccess(res, courses, 'Courses retrieved', 200, meta);
@@ -30,12 +30,12 @@ export class CourseController {
     });
 
     const body = schema.parse(req.body);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
     const createdBy = req.user!.sub;
 
     const course = await courseService.createCourse({
       title: body.title,
-      schoolId,
+      ...(schoolId ? { schoolId } : {}),
       createdBy,
       ...(body.description ? { description: body.description } : {}),
       ...(body.thumbnail ? { thumbnail: body.thumbnail } : {}),
