@@ -9,7 +9,7 @@ import { sendSuccess, sendCreated } from '@/shared/utils/response.util';
 export class ExamController {
   async getExams(req: Request, res: Response): Promise<void> {
     const params = PaginationSchema.parse(req.query);
-    const schoolId = req.user!.schoolId!;
+    const schoolId = req.user?.schoolId ?? undefined;
 
     const { exams, meta } = await examService.getExams(schoolId, params);
     sendSuccess(res, exams, 'Exams list retrieved', 200, meta);
@@ -23,19 +23,40 @@ export class ExamController {
 
   async createExam(req: Request, res: Response): Promise<void> {
     const schema = z.object({
-      termId: z.string().uuid(),
-      subjectId: z.string().uuid(),
-      classId: z.string().uuid(),
+      termId: z.string().uuid().optional(),
+      subjectId: z.string().uuid().optional(),
+      classId: z.string().uuid().optional(),
       title: z.string().min(2),
       type: z.nativeEnum(ExamType),
       totalMarks: z.number().int().min(1),
       passingMarks: z.number().int().min(1),
       scheduledAt: z.string(),
       duration: z.number().int().min(5),
+      questions: z
+        .array(
+          z.object({
+            question: z.string().min(1),
+            options: z.array(z.string()).optional(),
+            correctAnswer: z.string().optional(),
+            marks: z.number().int().optional(),
+          }),
+        )
+        .optional(),
     });
 
     const body = schema.parse(req.body);
-    const exam = await examService.createExam(body);
+    const exam = await examService.createExam({
+      title: body.title,
+      type: body.type,
+      totalMarks: body.totalMarks,
+      passingMarks: body.passingMarks,
+      duration: body.duration,
+      scheduledAt: body.scheduledAt,
+      ...(body.termId ? { termId: body.termId } : {}),
+      ...(body.subjectId ? { subjectId: body.subjectId } : {}),
+      ...(body.classId ? { classId: body.classId } : {}),
+      ...(body.questions ? { questions: body.questions } : {}),
+    });
     sendCreated(res, exam, 'Exam created successfully');
   }
 

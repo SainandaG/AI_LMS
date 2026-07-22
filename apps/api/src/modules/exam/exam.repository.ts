@@ -2,11 +2,11 @@ import { prisma, Exam, Result, ExamType } from '@ai-lms/database';
 import { PaginationInput } from '@ai-lms/shared';
 
 export class ExamRepository {
-  async findExams(schoolId: string, params: PaginationInput): Promise<{ exams: any[]; total: number }> {
+  async findExams(schoolId: string | undefined, params: PaginationInput): Promise<{ exams: any[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
 
     const where: any = {
-      term: { academicYear: { schoolId } },
+      ...(schoolId ? { term: { academicYear: { schoolId } } } : {}),
       ...(params.search ? { title: { contains: params.search, mode: 'insensitive' } } : {}),
     };
 
@@ -50,21 +50,45 @@ export class ExamRepository {
   }
 
   async createExam(data: {
-    termId: string;
-    subjectId: string;
-    classId: string;
+    termId?: string;
+    subjectId?: string;
+    classId?: string;
     title: string;
     type: ExamType;
     totalMarks: number;
     passingMarks: number;
     scheduledAt: Date;
     duration: number;
+    questions?: Array<{
+      question: string;
+      options?: string[] | undefined;
+      correctAnswer?: string | undefined;
+      marks?: number | undefined;
+    }> | undefined;
   }): Promise<Exam> {
-    return prisma.exam.create({
+    let termId = data.termId;
+    let subjectId = data.subjectId;
+    let classId = data.classId;
+
+    // Fallback lookups if IDs not explicitly provided
+    if (!termId) {
+      const term = await prisma.term.findFirst();
+      if (term) termId = term.id;
+    }
+    if (!subjectId) {
+      const subject = await prisma.subject.findFirst();
+      if (subject) subjectId = subject.id;
+    }
+    if (!classId) {
+      const cls = await prisma.class.findFirst();
+      if (cls) classId = cls.id;
+    }
+
+    const exam = await prisma.exam.create({
       data: {
-        termId: data.termId,
-        subjectId: data.subjectId,
-        classId: data.classId,
+        termId: termId!,
+        subjectId: subjectId!,
+        classId: classId!,
         title: data.title,
         type: data.type,
         totalMarks: data.totalMarks,
@@ -74,6 +98,23 @@ export class ExamRepository {
         isPublished: true,
       },
     });
+
+    // Create questions if passed
+    if (data.questions && data.questions.length > 0) {
+      await prisma.question.createMany({
+        data: data.questions.map((q, idx) => ({
+          examId: exam.id,
+          type: 'MULTIPLE_CHOICE',
+          question: q.question,
+          options: q.options || [],
+          correctAnswer: q.correctAnswer || null,
+          marks: q.marks || 10,
+          order: idx + 1,
+        })),
+      });
+    }
+
+    return exam;
   }
 
   async recordResult(data: {

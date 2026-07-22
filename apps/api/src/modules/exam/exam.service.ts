@@ -8,7 +8,7 @@ import { logger } from '@/shared/utils/logger';
 
 export class ExamService {
   async getExams(
-    schoolId: string,
+    schoolId: string | undefined,
     params: PaginationInput,
   ): Promise<{ exams: any[]; meta: PaginationMeta }> {
     const { exams, total } = await examRepository.findExams(schoolId, params);
@@ -23,15 +23,21 @@ export class ExamService {
   }
 
   async createExam(data: {
-    termId: string;
-    subjectId: string;
-    classId: string;
+    termId?: string;
+    subjectId?: string;
+    classId?: string;
     title: string;
     type: ExamType;
     totalMarks: number;
     passingMarks: number;
     scheduledAt: string;
     duration: number;
+    questions?: Array<{
+      question: string;
+      options?: string[] | undefined;
+      correctAnswer?: string | undefined;
+      marks?: number | undefined;
+    }> | undefined;
   }): Promise<Exam> {
     const exam = await examRepository.createExam({
       ...data,

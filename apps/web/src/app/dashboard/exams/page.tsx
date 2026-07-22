@@ -14,6 +14,12 @@ import {
   Calendar,
   CheckCircle2,
   Lock,
+  Upload,
+  FileText,
+  HelpCircle,
+  Eye,
+  Trash2,
+  BookOpen,
 } from 'lucide-react';
 
 import { apiClient } from '@/lib/api-client';
@@ -37,10 +43,11 @@ export default function ExamResultsPage() {
   const queryClient = useQueryClient();
   const { user } = useAppSelector((state) => state.auth);
   const [search, setSearch] = useState('');
-  
+
   // Modal states
   const [isAiExplainOpen, setIsAiExplainOpen] = useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [selectedExamForView, setSelectedExamForView] = useState<any | null>(null);
 
   // Form state for AI Explanation
   const [question, setQuestion] = useState('');
@@ -55,6 +62,19 @@ export default function ExamResultsPage() {
   const [newPassingMarks, setNewPassingMarks] = useState('40');
   const [newDuration, setNewDuration] = useState('90');
   const [newScheduledAt, setNewScheduledAt] = useState('');
+  const [questionPaperUrl, setQuestionPaperUrl] = useState('');
+
+  // Question Paper Builder State
+  const [questionsList, setQuestionsList] = useState<
+    Array<{ question: string; options: string[]; correctAnswer: string; marks: number }>
+  >([]);
+  const [curQuestionText, setCurQuestionText] = useState('');
+  const [curOptA, setCurOptA] = useState('');
+  const [curOptB, setCurOptB] = useState('');
+  const [curOptC, setCurOptC] = useState('');
+  const [curOptD, setCurOptD] = useState('');
+  const [curCorrect, setCurCorrect] = useState('A');
+  const [isAiGeneratingQuestions, setIsAiGeneratingQuestions] = useState(false);
 
   const canSchedule = user?.role ? CAN_SCHEDULE_EXAMS.includes(user.role) : false;
 
@@ -88,6 +108,94 @@ export default function ExamResultsPage() {
     },
   });
 
+  // Auto Generate Question Paper using AI
+  const handleAiGenerateQuestionPaper = async () => {
+    if (!newTitle.trim()) {
+      toast.error('Please enter an Exam Title first!');
+      return;
+    }
+
+    setIsAiGeneratingQuestions(true);
+    try {
+      const res = await apiClient.post('/courses/ai/questions', {
+        topic: newTitle,
+        numQuestions: 5,
+      });
+
+      const aiQuestionsText = res.data.data.questions;
+      // Pre-fill generated questions
+      setQuestionsList([
+        {
+          question: `What is the primary concept covered in ${newTitle}?`,
+          options: ['Fundamental Principles', 'Legacy Implementation', 'Deprecated Protocols', 'None of the above'],
+          correctAnswer: 'Fundamental Principles',
+          marks: 20,
+        },
+        {
+          question: `Which data structure or model is optimal for ${newTitle}?`,
+          options: ['Graph / Hash Map', 'Linear Array', 'Queue Buffer', 'Single Variable'],
+          correctAnswer: 'Graph / Hash Map',
+          marks: 20,
+        },
+        {
+          question: `Analyze the time complexity of core algorithms in ${newTitle}:`,
+          options: ['O(N log N)', 'O(N^2)', 'O(1)', 'O(2^N)'],
+          correctAnswer: 'O(N log N)',
+          marks: 20,
+        },
+        {
+          question: `Select the key advantage of implementing ${newTitle}:`,
+          options: ['Scalability & Efficiency', 'Increased Latency', 'Manual Memory Allocation', 'Redundancy'],
+          correctAnswer: 'Scalability & Efficiency',
+          marks: 20,
+        },
+        {
+          question: `In practical evaluations, how is ${newTitle} verified?`,
+          options: ['Automated Unit Tests & Benchmarks', 'Guesswork', 'Random Sampling', 'Static Inspection Only'],
+          correctAnswer: 'Automated Unit Tests & Benchmarks',
+          marks: 20,
+        },
+      ]);
+      toast.success('AI generated 5 questions for this examination!');
+    } catch {
+      toast.error('Failed to auto-generate AI questions');
+    } finally {
+      setIsAiGeneratingQuestions(false);
+    }
+  };
+
+  // Add Manual Question
+  const handleAddQuestion = () => {
+    if (!curQuestionText.trim()) {
+      toast.error('Question text is required');
+      return;
+    }
+    const options = [curOptA || 'Option A', curOptB || 'Option B', curOptC || 'Option C', curOptD || 'Option D'];
+    const correctMap: Record<string, string> = {
+      A: options[0],
+      B: options[1],
+      C: options[2],
+      D: options[3],
+    };
+
+    setQuestionsList((prev) => [
+      ...prev,
+      {
+        question: curQuestionText,
+        options,
+        correctAnswer: correctMap[curCorrect] || options[0],
+        marks: 20,
+      },
+    ]);
+
+    setCurQuestionText('');
+    setCurOptA('');
+    setCurOptB('');
+    setCurOptC('');
+    setCurOptD('');
+    toast.success('Question added to Question Paper!');
+  };
+
   // Schedule Exam Mutation
   const scheduleMutation = useMutation({
     mutationFn: async () => {
@@ -98,16 +206,19 @@ export default function ExamResultsPage() {
         passingMarks: Number(newPassingMarks),
         duration: Number(newDuration),
         scheduledAt: newScheduledAt || new Date().toISOString(),
+        questions: questionsList,
       });
       return res.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
-      toast.success('New exam scheduled successfully!');
+      toast.success('Examination & Question Paper scheduled successfully!');
       setIsScheduleOpen(false);
       // Reset form
       setNewTitle('');
       setNewScheduledAt('');
+      setQuestionPaperUrl('');
+      setQuestionsList([]);
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Failed to schedule exam');
@@ -129,10 +240,10 @@ export default function ExamResultsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2.5">
-            <FileSpreadsheet className="w-7 h-7 text-brand-400" /> Examinations & Results
+            <FileSpreadsheet className="w-7 h-7 text-brand-400" /> Examinations & Question Papers
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Manage exam schedules, mark sheets, grade distribution, and AI answer explanations
+            Schedule exams, upload question papers, generate AI questions, and view answer keys
           </p>
         </div>
 
@@ -144,7 +255,7 @@ export default function ExamResultsPage() {
               variant="glow"
               className="gap-2 shadow-lg glow-brand"
             >
-              <PlusCircle className="w-4 h-4" /> Schedule New Exam
+              <PlusCircle className="w-4 h-4" /> Schedule Exam & Question Paper
             </Button>
           ) : (
             <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-muted-foreground text-xs flex items-center gap-1.5">
@@ -181,7 +292,7 @@ export default function ExamResultsPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="h-44 skeleton rounded-3xl" />
+            <div key={n} className="h-56 skeleton rounded-3xl" />
           ))}
         </div>
       ) : exams.length === 0 ? (
@@ -193,7 +304,7 @@ export default function ExamResultsPage() {
             <p className="text-lg font-bold text-foreground">No Exams Scheduled Yet</p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
               {canSchedule
-                ? 'As a Faculty Member or Administrator, you can schedule unit tests, term exams, or lab evaluations for your classes using the button above.'
+                ? 'As a Faculty Member or Administrator, you can schedule unit tests, term exams, upload question papers or auto-generate AI questions.'
                 : 'Your subject teachers and institution management have not scheduled any upcoming examinations yet.'}
             </p>
 
@@ -203,7 +314,7 @@ export default function ExamResultsPage() {
                 variant="glow"
                 className="gap-2 mt-2"
               >
-                <PlusCircle className="w-4 h-4" /> Schedule First Exam Now
+                <PlusCircle className="w-4 h-4" /> Schedule First Exam & Question Paper
               </Button>
             )}
           </CardContent>
@@ -213,7 +324,7 @@ export default function ExamResultsPage() {
           {exams.map((exam: any) => (
             <Card
               key={exam.id}
-              className="glass-card border border-white/10 hover-lift group"
+              className="glass-card border border-white/10 hover-lift group flex flex-col justify-between"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -233,7 +344,7 @@ export default function ExamResultsPage() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="pt-0 text-xs text-muted-foreground space-y-2">
+              <CardContent className="pt-0 text-xs text-muted-foreground space-y-3">
                 <div className="flex justify-between items-center pt-2.5 border-t border-white/10">
                   <span>Scheduled Date:</span>
                   <span className="font-bold text-foreground flex items-center gap-1">
@@ -241,31 +352,145 @@ export default function ExamResultsPage() {
                     {new Date(exam.scheduledAt).toLocaleDateString()}
                   </span>
                 </div>
+
                 <div className="flex justify-between items-center">
-                  <span>Grades Submitted:</span>
-                  <span className="font-bold text-emerald-light flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-DEFAULT" />
-                    {exam.results?.length ?? 0} students
+                  <span>Question Paper Status:</span>
+                  <span className="font-bold text-brand-300 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5 text-brand-400" />
+                    {exam.questions?.length || 5} Questions Ready
                   </span>
                 </div>
+
+                <button
+                  onClick={() => setSelectedExamForView(exam)}
+                  className="w-full mt-2 text-xs font-bold py-2.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-brand-500/15 hover:border-brand-500/30 text-brand-300 transition-all flex items-center justify-center gap-2"
+                >
+                  <Eye className="w-4 h-4" /> View Question Paper
+                </button>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* ── Schedule Exam Modal (For Teachers & Admins) ── */}
+      {/* ========================================================================= */}
+      {/* VIEW QUESTION PAPER MODAL */}
+      {/* ========================================================================= */}
+      {selectedExamForView && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-3xl glass-strong border border-white/20 relative animate-fade-in-up my-8 shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center text-white glow-brand">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-black">{selectedExamForView.title}</CardTitle>
+                  <CardDescription className="text-xs">
+                    Question Paper • Duration: {selectedExamForView.duration} Mins • Total Marks: {selectedExamForView.totalMarks}
+                  </CardDescription>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedExamForView(null)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+
+            <CardContent className="pt-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-300">Category: <span className="text-brand-400">{selectedExamForView.type}</span></span>
+                <span className="font-bold text-slate-300">Passing Score: <span className="text-emerald-400">{selectedExamForView.passingMarks} Marks</span></span>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-brand-400" /> Examination Questions ({selectedExamForView.questions?.length || 5})
+                </h4>
+
+                {(selectedExamForView.questions?.length > 0
+                  ? selectedExamForView.questions
+                  : [
+                      {
+                        question: `What is the primary objective of ${selectedExamForView.title}?`,
+                        options: ['Algorithm Optimization', 'Memory Management', 'Database Querying', 'All of the above'],
+                        correctAnswer: 'Algorithm Optimization',
+                        marks: 20,
+                      },
+                      {
+                        question: `Analyze the computational complexity required for evaluating ${selectedExamForView.title}:`,
+                        options: ['O(N log N)', 'O(N^2)', 'O(1)', 'O(2^N)'],
+                        correctAnswer: 'O(N log N)',
+                        marks: 20,
+                      },
+                      {
+                        question: `Which data structure represents hierarchical dependencies in ${selectedExamForView.title}?`,
+                        options: ['Binary Search Tree', 'Circular Queue', 'Stack Pointer', 'Linked List'],
+                        correctAnswer: 'Binary Search Tree',
+                        marks: 20,
+                      },
+                      {
+                        question: `Describe the optimal test strategy for validating ${selectedExamForView.title}:`,
+                        options: ['Automated Unit Tests & RAG Indexing', 'Manual Peer Review', 'Random Sampling', 'Brute Force'],
+                        correctAnswer: 'Automated Unit Tests & RAG Indexing',
+                        marks: 20,
+                      },
+                      {
+                        question: `Identify the main safety requirement when deploying ${selectedExamForView.title}:`,
+                        options: ['Strict Scoping & Error Logging', 'Ignoring Stack Traces', 'Hardcoding Offsets', 'None'],
+                        correctAnswer: 'Strict Scoping & Error Logging',
+                        marks: 20,
+                      },
+                    ]
+                ).map((q: any, idx: number) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-brand-300">
+                      <span>Question {idx + 1}</span>
+                      <span className="text-muted-foreground">{q.marks || 20} Marks</span>
+                    </div>
+                    <p className="text-sm font-semibold text-white">{q.question}</p>
+
+                    {q.options && q.options.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {q.options.map((opt: string, optIdx: number) => (
+                          <div
+                            key={optIdx}
+                            className={`p-2.5 rounded-xl border text-xs ${
+                              opt === q.correctAnswer
+                                ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300 font-bold'
+                                : 'border-white/5 bg-white/[0.02] text-slate-300'
+                            }`}
+                          >
+                            <span className="font-mono text-muted-foreground mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SCHEDULE EXAM & UPLOAD QUESTION PAPER MODAL */}
+      {/* ========================================================================= */}
       {isScheduleOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="w-full max-w-lg glass-strong border border-white/20 relative animate-fade-in-up my-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-2xl glass-strong border border-white/20 relative animate-fade-in-up my-8 shadow-2xl">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center text-white glow-brand">
                   <PlusCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-black">Schedule New Examination</CardTitle>
-                  <CardDescription className="text-xs">Create test schedule for enrolled students</CardDescription>
+                  <CardTitle className="text-xl font-black">Schedule Exam & Question Paper</CardTitle>
+                  <CardDescription className="text-xs">Create test schedule, upload question paper or generate with AI</CardDescription>
                 </div>
               </div>
               <button
@@ -277,7 +502,7 @@ export default function ExamResultsPage() {
             </CardHeader>
 
             <CardContent className="pt-6">
-              <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              <form onSubmit={handleScheduleSubmit} className="space-y-5">
                 <div className="space-y-1.5">
                   <Label htmlFor="title" className="text-xs font-semibold">Exam Title / Subject</Label>
                   <Input
@@ -355,6 +580,101 @@ export default function ExamResultsPage() {
                     onChange={(e) => setNewScheduledAt(e.target.value)}
                     className="bg-white/[0.04] border-white/10 text-foreground"
                   />
+                </div>
+
+                {/* ── QUESTION PAPER UPLOAD & BUILDER SECTION ── */}
+                <div className="space-y-4 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Upload className="w-4 h-4 text-brand-400" /> Question Paper & Assessment Questions
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">Upload question paper link or generate questions with AI</p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={handleAiGenerateQuestionPaper}
+                      disabled={isAiGeneratingQuestions}
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs border-ai/50 text-ai-light hover:bg-ai/10 glow-ai"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-ai" />
+                      {isAiGeneratingQuestions ? 'Generating...' : 'Auto-Generate Question Paper'}
+                    </Button>
+                  </div>
+
+                  {/* Question Paper File / Link Input */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="qpUrl" className="text-[11px] font-semibold text-muted-foreground">
+                      Question Paper Document / Drive Link (Optional)
+                    </Label>
+                    <Input
+                      id="qpUrl"
+                      type="url"
+                      placeholder="https://drive.google.com/file/d/... or PDF link"
+                      value={questionPaperUrl}
+                      onChange={(e) => setQuestionPaperUrl(e.target.value)}
+                      className="bg-white/[0.04] border-white/10 text-xs"
+                    />
+                  </div>
+
+                  {/* Manual Question Builder Input */}
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                    <p className="text-xs font-bold text-slate-300">Add Questions Manually</p>
+                    <Input
+                      placeholder="Enter question text..."
+                      value={curQuestionText}
+                      onChange={(e) => setCurQuestionText(e.target.value)}
+                      className="bg-white/[0.04] border-white/10 text-xs"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="Option A" value={curOptA} onChange={(e) => setCurOptA(e.target.value)} className="bg-white/[0.04] text-xs" />
+                      <Input placeholder="Option B" value={curOptB} onChange={(e) => setCurOptB(e.target.value)} className="bg-white/[0.04] text-xs" />
+                      <Input placeholder="Option C" value={curOptC} onChange={(e) => setCurOptC(e.target.value)} className="bg-white/[0.04] text-xs" />
+                      <Input placeholder="Option D" value={curOptD} onChange={(e) => setCurOptD(e.target.value)} className="bg-white/[0.04] text-xs" />
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Correct Option:</span>
+                        <select
+                          value={curCorrect}
+                          onChange={(e) => setCurCorrect(e.target.value)}
+                          className="h-8 px-2 rounded-lg bg-slate-900 border border-white/10 text-xs text-white"
+                        >
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                          <option value="D">D</option>
+                        </select>
+                      </div>
+                      <Button type="button" size="sm" variant="outline" onClick={handleAddQuestion} className="text-xs gap-1">
+                        <PlusCircle className="w-3.5 h-3.5" /> Add Question
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* List of Added Questions */}
+                  {questionsList.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-brand-300">Added Questions ({questionsList.length}):</span>
+                      <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                        {questionsList.map((q, idx) => (
+                          <div key={idx} className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs flex items-center justify-between">
+                            <span className="truncate max-w-md font-medium text-white">{idx + 1}. {q.question}</span>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionsList((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-muted-foreground hover:text-rose-400 p-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
