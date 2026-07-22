@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 
 import { apiClient } from '@/lib/api-client';
-import { useAppSelector } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +24,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function NotificationsCenterPage() {
   const queryClient = useQueryClient();
-  const { user } = useAppSelector((state) => state.auth);
 
   // Modal states
   const [isAnnModalOpen, setIsAnnModalOpen] = useState(false);
